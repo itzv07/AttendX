@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
+import '../providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/glass_card.dart';
 import '../../../shared/widgets/gradient_button.dart';
@@ -18,17 +17,50 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _identifierController = TextEditingController(text: '2273A39001');
+  final _passwordController = TextEditingController(text: '2273A39001');
+
+  // Selected role tab: 0: Student, 1: Faculty, 2: Admin
+  int _selectedRoleIndex = 0;
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _onRoleSelected(int index) {
+    setState(() {
+      _selectedRoleIndex = index;
+      _errorMessage = null;
+
+      if (index == 0) {
+        // Student default
+        _identifierController.text = '2273A39001';
+        _passwordController.text = '2273A39001';
+      } else if (index == 1) {
+        // Faculty default
+        _identifierController.text = 'FAC101';
+        _passwordController.text = 'FAC101';
+      } else {
+        // Admin default
+        _identifierController.text = 'ADMIN';
+        _passwordController.text = '@Admin123';
+      }
+    });
+  }
+
+  void _fillSample(String id, String pass, int roleIdx) {
+    setState(() {
+      _selectedRoleIndex = roleIdx;
+      _identifierController.text = id;
+      _passwordController.text = pass;
+      _errorMessage = null;
+    });
   }
 
   Future<void> _handleLogin() async {
@@ -42,7 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       final user = await authService.signIn(
-        _emailController.text,
+        _identifierController.text,
         _passwordController.text,
       );
 
@@ -79,274 +111,335 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Animated background gradient
-          _buildBackground(size),
-
-          // Main content
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: size.height * 0.08),
-
-                  // Logo & Branding
-                  _buildBranding()
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideY(begin: -0.3, end: 0),
-
-                  SizedBox(height: size.height * 0.06),
-
-                  // Login form card
-                  _buildLoginCard()
-                      .animate()
-                      .fadeIn(delay: 300.ms, duration: 600.ms)
-                      .slideY(begin: 0.3, end: 0),
-
-                  const SizedBox(height: 24),
-
-                  // Footer text
-                  Text(
-                    'AttendX v1.0 · Secured by Firebase',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.textHint,
-                        ),
-                  ).animate().fadeIn(delay: 800.ms),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBackground(Size size) {
-    return Stack(
-      children: [
-        // Deep gradient background
-        Container(
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(0, -0.5),
-              radius: 1.5,
-              colors: [
-                Color(0xFF1A2A4A),
-                Color(0xFF0A0E1A),
-              ],
-            ),
-          ),
-        ),
-        // Glow effect at top
-        Positioned(
-          top: -100,
-          left: size.width * 0.5 - 150,
-          child: Container(
-            width: 300,
-            height: 300,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
+          // Background ambient gradient
+          Container(
+            decoration: const BoxDecoration(
               gradient: RadialGradient(
+                center: Alignment(0, -0.4),
+                radius: 1.1,
                 colors: [
-                  AppColors.accentBlue.withOpacity(0.15),
-                  Colors.transparent,
+                  Color(0xFF1E3A5F),
+                  Color(0xFF0A0E1A),
                 ],
               ),
             ),
           ),
-        ),
-        // Star particles
-        ...List.generate(15, (i) => _buildStarParticle(i, size)),
-      ],
-    );
-  }
 
-  Widget _buildStarParticle(int index, Size size) {
-    final positions = [
-      [0.1, 0.05], [0.9, 0.08], [0.05, 0.3], [0.95, 0.25],
-      [0.5, 0.02], [0.2, 0.6], [0.8, 0.55], [0.3, 0.12],
-      [0.7, 0.15], [0.15, 0.8], [0.85, 0.75], [0.4, 0.7],
-      [0.6, 0.85], [0.25, 0.4], [0.75, 0.45],
-    ];
-    final pos = positions[index % positions.length];
-
-    return Positioned(
-      left: pos[0] * size.width,
-      top: pos[1] * size.height,
-      child: Container(
-        width: index % 3 == 0 ? 3 : 2,
-        height: index % 3 == 0 ? 3 : 2,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.3 + (index % 3) * 0.1),
-          shape: BoxShape.circle,
-        ),
-      ).animate(onPlay: (c) => c.repeat(reverse: true))
-          .fadeIn(delay: (index * 200).ms, duration: 1500.ms)
-          .then()
-          .fadeOut(duration: 1500.ms),
-    );
-  }
-
-  Widget _buildBranding() {
-    return Column(
-      children: [
-        // Logo circle
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF3563E9), Color(0xFF1E3A8A)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accentBlue.withOpacity(0.5),
-                blurRadius: 30,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: const Icon(Icons.school_rounded, color: Colors.white, size: 40),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'AttendX',
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Present in Person. Verified by Technology.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-                letterSpacing: 0.3,
-              ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoginCard() {
-    return GlassCard(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Welcome back',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Sign in to your account',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 28),
-
-              // Email field
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  hintText: 'Email address',
-                  prefixIcon: Icon(Icons.email_outlined, size: 20),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Email is required';
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                      .hasMatch(value)) {
-                    return 'Enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Password field
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Password is required';
-                  if (value.length < 6) return 'Password must be at least 6 characters';
-                  return null;
-                },
-              ),
-
-              // Forgot password
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _showForgotPasswordDialog,
-                  child: const Text('Forgot password?'),
-                ),
-              ),
-
-              // Error message
-              if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
-                  ),
-                  child: Row(
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.error,
+                      // Branding & Logo
+                      _buildLogo(),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'AttendX',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Smart Attendance & Proximity Verification',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary.withOpacity(0.9),
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // Role Switcher Tabs
+                      _buildRoleTabs(),
+
+                      const SizedBox(height: 18),
+
+                      // Login Card
+                      GlassCard(
+                        padding: const EdgeInsets.all(22),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _getCardTitle(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _getCardSubtitle(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary.withOpacity(0.8),
+                                ),
+                              ),
+
+                              const SizedBox(height: 18),
+
+                              // Error alert
+                              if (_errorMessage != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.error.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline,
+                                          color: AppColors.error, size: 18),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: const TextStyle(
+                                            color: AppColors.error,
+                                            fontSize: 12,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+
+                              // Identifier Field (Roll number / Faculty ID / ADMIN)
+                              Text(
+                                _getFieldLabel(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _identifierController,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.8,
+                                ),
+                                textCapitalization: TextCapitalization.characters,
+                                decoration: InputDecoration(
+                                  hintText: _getFieldHint(),
+                                  hintStyle: TextStyle(
+                                    color: AppColors.textSecondary.withOpacity(0.5),
+                                    letterSpacing: 0,
+                                  ),
+                                  prefixIcon: Icon(
+                                    _getFieldIcon(),
+                                    color: AppColors.accentBlue,
+                                    size: 20,
+                                  ),
+                                ),
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) {
+                                    return 'Please enter your ${_getFieldLabel()}';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Password Field
+                              Text(
+                                _getPasswordLabel(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _passwordController,
+                                obscureText: _obscurePassword,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter password',
+                                  hintStyle: TextStyle(
+                                    color: AppColors.textSecondary.withOpacity(0.5),
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline,
+                                    color: AppColors.accentBlue,
+                                    size: 20,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: AppColors.textSecondary,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (val) {
+                                  if (val == null || val.isEmpty) {
+                                    return 'Password is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                              const SizedBox(height: 22),
+
+                              // Sign In Button
+                              GradientButton(
+                                onPressed: _isLoading ? null : _handleLogin,
+                                isLoading: _isLoading,
+                                child: Text(
+                                  'SIGN IN AS ${_getRoleName().toUpperCase()}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Quick Sample Logins
+                      _buildQuickPills(),
+
+                      const SizedBox(height: 16),
+
+                      Text(
+                        'AttendX Enterprise v1.0.0 • Verified by Technology',
+                        style: TextStyle(
+                          color: AppColors.textSecondary.withOpacity(0.5),
+                          fontSize: 11,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              // Login button
-              GradientButton(
-                onPressed: _isLoading ? null : _handleLogin,
-                isLoading: _isLoading,
-                child: const Text('Sign In'),
+  Widget _buildLogo() {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3563E9), Color(0xFF1E3A5F)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accentBlue.withOpacity(0.4),
+            blurRadius: 24,
+            spreadRadius: 4,
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.school_rounded,
+        color: Colors.white,
+        size: 32,
+      ),
+    );
+  }
+
+  Widget _buildRoleTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.surfaceLight.withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          _buildRoleTabItem(0, 'Student', Icons.school_outlined),
+          _buildRoleTabItem(1, 'Instructor', Icons.badge_outlined),
+          _buildRoleTabItem(2, 'Admin', Icons.security_outlined),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleTabItem(int index, String label, IconData icon) {
+    final isSelected = _selectedRoleIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onRoleSelected(index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.accentBlue : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.accentBlue.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -355,58 +448,125 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _showForgotPasswordDialog() {
-    final emailController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reset Password', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+  Widget _buildQuickPills() {
+    return Column(
+      children: [
+        Text(
+          'Quick Fill Credentials',
+          style: TextStyle(
+            color: AppColors.textSecondary.withOpacity(0.7),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          alignment: WrapAlignment.center,
           children: [
-            Text(
-              'Enter your email to receive a password reset link.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              keyboardType: TextInputType.emailAddress,
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: const InputDecoration(hintText: 'Email address'),
-            ),
+            _buildSampleChip('2273A39001 (Std)', '2273A39001', '2273A39001', 0),
+            _buildSampleChip('2273A39050 (Std)', '2273A39050', '2273A39050', 0),
+            _buildSampleChip('2273A390L1 (Lateral)', '2273A390L1', '2273A390L1', 0),
+            _buildSampleChip('FAC101 (Faculty)', 'FAC101', 'FAC101', 1),
+            _buildSampleChip('ADMIN (@Admin123)', 'ADMIN', '@Admin123', 2),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final authService = ref.read(authServiceProvider);
-              try {
-                await authService.sendPasswordResetEmail(emailController.text);
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password reset email sent!')),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
-                }
-              }
-            },
-            child: const Text('Send Link'),
-          ),
-        ],
-      ),
+      ],
     );
+  }
+
+  Widget _buildSampleChip(String label, String id, String pass, int roleIdx) {
+    return ActionChip(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      backgroundColor: AppColors.card,
+      side: BorderSide(color: AppColors.surfaceLight.withOpacity(0.6)),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.glowBlue,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      onPressed: () => _fillSample(id, pass, roleIdx),
+    );
+  }
+
+  String _getRoleName() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return 'Instructor';
+      case 2:
+        return 'Administrator';
+      default:
+        return 'Student';
+    }
+  }
+
+  String _getCardTitle() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return 'Instructor Faculty Portal';
+      case 2:
+        return 'University Administration';
+      default:
+        return 'Student Attendance Portal';
+    }
+  }
+
+  String _getCardSubtitle() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return 'Login with your Faculty Identification ID';
+      case 2:
+        return 'Authenticate with University Admin Master Key';
+      default:
+        return 'Login with your Roll Number (2273A39001 - 2273A39132, 2273A390L1-L3)';
+    }
+  }
+
+  String _getFieldLabel() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return 'FACULTY ID';
+      case 2:
+        return 'ADMIN IDENTIFIER';
+      default:
+        return 'ROLL NUMBER';
+    }
+  }
+
+  String _getFieldHint() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return 'e.g. FAC101';
+      case 2:
+        return 'ADMIN';
+      default:
+        return 'e.g. 2273A39001';
+    }
+  }
+
+  IconData _getFieldIcon() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return Icons.badge_outlined;
+      case 2:
+        return Icons.admin_panel_settings_outlined;
+      default:
+        return Icons.person_outline;
+    }
+  }
+
+  String _getPasswordLabel() {
+    switch (_selectedRoleIndex) {
+      case 1:
+        return 'PASSWORD (SAME AS FACULTY ID)';
+      case 2:
+        return 'PASSWORD (@Admin123)';
+      default:
+        return 'PASSWORD (SAME AS ROLL NUMBER)';
+    }
   }
 }

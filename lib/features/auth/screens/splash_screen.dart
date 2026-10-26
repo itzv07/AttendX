@@ -34,15 +34,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _checkAuthAndNavigate() async {
-    final authState = ref.read(authStateProvider);
-    final user = authState.valueOrNull;
-
-    if (user == null) {
-      if (mounted) context.go('/login');
-      return;
-    }
-
-    // Get user role and navigate accordingly
     final userModel = await ref.read(currentUserProvider.future);
     if (!mounted) return;
 
